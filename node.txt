@@ -1,0 +1,7 @@
+
+> npm install react-router-dom
+> npm install andtd
+> npm antd icon
+> npm install react-icon
+> npm install axios
+> tailwindCSS 
