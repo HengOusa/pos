@@ -109,7 +109,6 @@ html {
 /* Menu Optioin */
 .logo-vertical {
   width: 100%;
-  height: auto;
   padding: 10px;
   display: flex;
   flex-direction: column;
@@ -143,21 +142,10 @@ html {
   padding: 15px;
 }
 .custom-sider {
-  padding-right: 8px;
+  padding: 0px 10px;
 }
 .ant-layout {
   background-color: #f5f7fa;
-}
-/* Home page */
-.home-picture {
-  position: relative;
-  /* background-image: url('https://soeasytravelinsurance.com/wp-content/uploads/2023/05/s.jpg'); */
-  background-image: url("../src/assets/images/HomePage-picture.gif");
-  background-repeat: no-repeat;
-  background-size: cover;
-  background-position: center;
-  padding: 50px;
-  z-index: 1;
 }
 
 .home-picture::after {
@@ -178,4 +166,35 @@ html {
   border-radius: 12px !important;
   padding: 10px 30px;
   width: 300px !important;
+}
+/* Table Header Background */
+.custom-table .ant-table-thead > tr > th {
+  padding: 9px 5px !important; /* top/bottom 18px, left/right 16px */
+  background-color: #1677ff !important; /* Blue */
+  color: white !important; /* Text color */
+  font-weight: 600;
+  text-align: left;
+}
+/* Hover effect */
+.custom-table .ant-table-tbody > tr:hover > td {
+  background-color: #e6f7ff !important;
+  transition: 0.3s;
+}
+/* Optional: hover effect */
+.custom-table .ant-table-thead > tr > th:hover {
+  background-color: #0958d9 !important;
+}
+.custom-table .ant-table-tbody > tr:nth-child(odd) > td {
+  background-color: #f4f4f4;
+}
+.ant-layout-content {
+  margin: 16px;
+}
+
+.ant-card {
+  border-radius: 8px;
+}
+
+.ant-card-body {
+  padding: 16px;
 }

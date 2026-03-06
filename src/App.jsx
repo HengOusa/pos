@@ -1,20 +1,29 @@
-import { BrowserRouter, Route, Routes } from "react-router-dom";
+import { BrowserRouter, Route, Routes, Navigate } from "react-router-dom";
 import "./App.css";
 import MainLayout from "./Layouts/MainLayout";
 import DashboardPage from "./Pages/DashboardPage";
 import { PosPage } from "./Pages/PosPage";
 import DepartmentPage from "./Pages/DepartmentPage";
-import WelcomPage from "./Auth/WelcomPage";
+import CategoryPage from "./Pages/Products/CategoryPage";
+import ProductPage from "./Pages/Products/ProductPage";
+import EditCategory from "./Pages/Products/CategoryAction/EditCategory";
+import CreateCategory from "./Pages/Products/CategoryAction/CreateCategory";
+import UserPage from "./Pages/Settings/UserPage";
 function App() {
   return (
     <>
       <BrowserRouter>
         <Routes>
-          <Route path="/" element={<WelcomPage />} />
           <Route element={<MainLayout />}>
-            <Route path="/dashboard" element={<DashboardPage />} />
-            <Route path="/pos" element={<PosPage />} />
-            <Route path="/department" element={<DepartmentPage />} />
+            <Route index element={<Navigate to="/dashboard" />} />{" "}
+            {/* default */}
+            <Route index path="/dashboard" element={<DashboardPage />} />
+            <Route path="/products/categories" element={<CategoryPage />} />
+            <Route path="/categories/create" element={<CreateCategory />} />
+            <Route path="/categories/edit/:id" element={<EditCategory />} />
+            <Route path="/products/list" element={<ProductPage />} />
+            {/* Settings */}
+            <Route path="settings/users" element={<UserPage />} />
           </Route>
         </Routes>
       </BrowserRouter>
