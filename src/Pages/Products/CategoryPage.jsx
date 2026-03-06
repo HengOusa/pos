@@ -58,12 +58,14 @@ const CategoryPage = () => {
     try {
       const res = await request("categories", "get");
 
-      if (res) {
+      if (res?.status == "success") {
         setState((prev) => ({
           ...prev,
           total: res.total,
           categories: res.categories,
         }));
+      } else {
+        message.error("Failed load categories");
       }
     } catch (error) {
       message.error("Failed to load categories");

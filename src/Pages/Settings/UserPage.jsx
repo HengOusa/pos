@@ -57,16 +57,17 @@ const UserPage = () => {
   // ================================
   const getList = async () => {
     setState((prev) => ({ ...prev, loading: true }));
-
     try {
       const res = await request("auth/users", "get");
 
-      if (res) {
+      if (res?.status == "success") {
         setState((prev) => ({
           ...prev,
           total: res.total,
           users: res.users,
         }));
+      } else {
+        message.error("Failed to load users");
       }
     } catch (error) {
       message.error("Failed to load users");
@@ -161,7 +162,7 @@ const UserPage = () => {
     try {
       const res = await request(`users/${id}/status`, "patch", data);
 
-      if (res.status === "success") {
+      if (res?.status === "success") {
         message.success("User status updated");
         getList();
       } else {
