@@ -51,9 +51,9 @@ const ProductPage = () => {
     setState((prev) => ({ ...prev, loading: true }));
 
     try {
-      const res = await request("categories", "get");
+      const res = await request("products", "get");
 
-      if (res) {
+      if (res.status == "success") {
         setState((prev) => ({
           ...prev,
           total: res.total,

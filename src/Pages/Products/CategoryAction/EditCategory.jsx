@@ -30,15 +30,18 @@ const EditCategory = () => {
     setLoading(true);
     try {
       const res = await request(`categories/${id}`, "get"); // get category by ID
+      // alert(JSON.stringify(res))
       const category = res.category;
       setState(category);
-      if (res) {
+      if (res?.status == "success") {
         setCategory(res);
         form.setFieldsValue({
           name: res.category.name,
           description: res.category.description,
           is_active: res.category.is_active === 1,
         });
+      } else {
+        message.error("Failed to load category");
       }
     } catch (error) {
       message.error("Failed to load category");
@@ -50,12 +53,16 @@ const EditCategory = () => {
   const handleSubmit = async (values) => {
     setLoading(true);
     try {
-      await request(`categories/${id}`, "put", {
+      const res = await request(`categories/${id}`, "put", {
         ...values,
         is_active: values.is_active ? 1 : 0,
       });
-      message.success("Category updated successfully");
-      navigate("/products/categories"); // go back to category list
+      if (res.status == "success") {
+        message.success("Category updated successfully");
+        navigate("/products/categories"); // go back to category list
+      } else {
+        message.warning(res.errors.message);
+      }
     } catch (error) {
       message.error("Failed to update category");
     } finally {
@@ -73,7 +80,7 @@ const EditCategory = () => {
           <strong className="text-blue-500 text-xl"> {state.name}</strong>
         </h2>
       </div>
-      <Card title="Add Category">
+      <Card title="Edit Category">
         <Form form={form} layout="vertical" onFinish={handleSubmit}>
           <Row gutter={24}>
             <Col span={8}>

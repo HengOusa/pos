@@ -7,20 +7,25 @@ import {
   SettingOutlined,
   ShopOutlined,
   ShoppingCartOutlined,
-  StockOutlined,
-  UserOutlined,
   TeamOutlined,
   GiftOutlined,
   FileTextOutlined,
+  UserOutlined,
+  LogoutOutlined,
+  BellOutlined,
+  MessageOutlined,
+  SearchOutlined,
 } from "@ant-design/icons";
 
 import {
   Avatar,
-  Breadcrumb,
   Button,
   Dropdown,
   Layout,
+  Breadcrumb,
+  Badge,
   Menu,
+  Input,
   Space,
   theme,
   Typography,
@@ -28,6 +33,13 @@ import {
 import { useEffect, useState } from "react";
 import { Link, Outlet, useLocation, useNavigate } from "react-router-dom";
 import logo from "../assets/images/pos.png";
+import {
+  clearProfile,
+  getProfile,
+  setAccessToken,
+  setProfile,
+} from "../Stores/profile.store";
+import { useProfileStore } from "../Stores/profileStore";
 
 const { Header, Content, Footer, Sider } = Layout;
 const { Text } = Typography;
@@ -124,35 +136,62 @@ const MainLayout = () => {
   const [menuTheme, setMenuTheme] = useState("light");
   const navigate = useNavigate();
   const location = useLocation();
+  const [selectedKey, setSelectedKey] = useState("dashboard");
+  const profile = useProfileStore((state) => state.profile);
+  const logout = useProfileStore((state) => state.logout);
 
-  /* ===== Static Profile ===== */
-  const profile = {
-    name: "Admin User",
-    type: "Administrator",
-    avatar: null,
-  };
+  // profile
 
   /* ===== Auto Dark / Light ===== */
   useEffect(() => {
-    const darkModeQuery = window.matchMedia("(prefers-color-scheme: dark)");
-    const updateTheme = (e) => setMenuTheme(e.matches ? "dark" : "light");
-    setMenuTheme(darkModeQuery.matches ? "dark" : "light");
-    darkModeQuery.addEventListener("change", updateTheme);
-    return () => darkModeQuery.removeEventListener("change", updateTheme);
-  }, []);
+    if (!profile) {
+      navigate("auth/login");
+    }
 
-  /* ===== Breadcrumb ===== */
-  const pathSnippets = location.pathname.split("/").filter(Boolean);
-  const currentKey =
-    pathSnippets.length >= 2
-      ? `${pathSnippets[pathSnippets.length - 2]}/${
-          pathSnippets[pathSnippets.length - 1]
-        }`
-      : pathSnippets[0] || "dashboard";
+    const path = location.pathname.replace("/", "");
+    // exact match
+    if (MENU_KEYS.includes(path)) {
+      setSelectedKey(path);
+      return;
+    }
+    // partial match (for /products/list/10)
+    const match = MENU_KEYS.find((key) => path.startsWith(key));
+    if (match) {
+      setSelectedKey(match);
+    }
+    // ==============================================
+  }, [location.pathname]);
+
+  const getAllMenuKeys = (items) => {
+    let keys = [];
+
+    items.forEach((item) => {
+      keys.push(item.key);
+
+      if (item.children) {
+        item.children.forEach((child) => {
+          keys.push(child.key);
+        });
+      }
+    });
+
+    return keys;
+  };
+  const MENU_KEYS = getAllMenuKeys(MenuItems);
+
+  const handleLogout = () => {
+    logout();
+    navigate("auth/login");
+  };
 
   const {
     token: { colorBgContainer, borderRadiusLG },
   } = theme.useToken();
+
+  // const profile = getProfile();
+  if (!profile) {
+    return null;
+  }
 
   return (
     <Layout>
@@ -190,8 +229,8 @@ const MainLayout = () => {
           style={{ maxHeight: "calc(100vh - 240px)", overflowY: "auto" }}
           theme={menuTheme}
           mode="inline"
-          selectedKeys={[currentKey]} // dynamic selection
-          defaultOpenKeys={[pathSnippets[0]]} // auto-open parent menu
+          selectedKeys={[selectedKey]} // dynamic selection
+          defaultOpenKeys={[selectedKey.split("/")[0]]} // auto-open parent menu
           items={MenuItems}
         />
 
@@ -212,56 +251,127 @@ const MainLayout = () => {
             width: "100%",
             color: menuTheme === "dark" ? "white" : "black",
             background: menuTheme === "dark" ? "#001529" : colorBgContainer,
+            boxShadow: "0 2px 8px rgba(0,0,0,0.06)",
+            backdropFilter: "blur(8px)",
+            transition: "all 0.3s ease",
           }}
         >
-          <div className="flex justify-between  items-center px-4">
-            <Button
-              type="text"
-              icon={collapsed ? <MenuUnfoldOutlined /> : <MenuFoldOutlined />}
-              onClick={() => setCollapsed(!collapsed)}
-              style={{
-                color: menuTheme === "dark" ? colorBgContainer : "black",
-                fontSize: "20px",
-                width: 64,
-                height: 64,
-              }}
-            />
+          <div className="flex justify-between items-center h-full px-4 md:px-6">
+            {/* Left section with logo and collapse button */}
+            <div className="flex items-center gap-4">
+              <Button
+                type="text"
+                icon={collapsed ? <MenuUnfoldOutlined /> : <MenuFoldOutlined />}
+                onClick={() => setCollapsed(!collapsed)}
+                className="hover:bg-opacity-10"
+                style={{
+                  color: menuTheme === "dark" ? colorBgContainer : "black",
+                  fontSize: "20px",
+                  width: 48,
+                  height: 48,
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  transition: "all 0.2s",
+                }}
+              />
 
-            <Dropdown
-              trigger={["click"]}
-              menu={{
-                items: [
-                  {
-                    key: "1",
-                    label: <span>User: {profile.type}</span>,
-                    disabled: true,
-                  },
-                  { type: "divider" },
-                  {
-                    key: "2",
-                    label: <Link to="/profile">Profile</Link>,
-                  },
-                  {
-                    key: "3",
-                    label: "Logout",
-                    danger: true,
-                  },
-                ],
-              }}
-            >
-              <Space
-                className="cursor-pointer px-3 py-1 rounded-lg hover:bg-gray-100 transition"
-                align="center"
+              {/* Optional: Add logo/brand name */}
+              <div className="hidden sm:block">
+                <span className="font-semibold text-lg bg-gradient-to-r from-blue-500 to-purple-600 bg-clip-text text-transparent">
+                  Dashboard
+                </span>
+              </div>
+            </div>
+
+            <div className="flex-1 max-w-xl mx-4 hidden md:flex items-center gap-4">
+              {/* Search */}
+              <Input
+                size="large"
+                placeholder="Search..."
+                prefix={<SearchOutlined />}
+                className="max-w-xs"
+              />
+            </div>
+
+            <div className="flex items-center gap-4">
+              {/* Right section with user menu */}
+              <div className="flex items-center gap-4">
+                {/* Notification */}
+                <Badge count={5}>
+                  <BellOutlined className="text-2xl cursor-pointer text-blue-500!" />
+                </Badge>
+
+                {/* Chat Message */}
+                <Badge count={2}>
+                  <MessageOutlined className="text-2xl cursor-pointer text-blue-500!" />
+                </Badge>
+              </div>
+              <Dropdown
+                trigger={["click"]}
+                placement="bottomRight"
+                arrow={{ pointAtCenter: true }}
+                menu={{
+                  items: [
+                    {
+                      key: "1",
+                      label: (
+                        <div className="px-2 py-1">
+                          <p className="font-medium">
+                            Role: {profile?.role_name}
+                          </p>
+                          <p className="text-xs text-gray-500">
+                            {profile?.email}
+                          </p>
+                        </div>
+                      ),
+                      style: { cursor: "default" },
+                    },
+                    { type: "divider" },
+                    {
+                      key: "2",
+                      icon: <UserOutlined />,
+                      label: <Link to="/profile">Profile</Link>,
+                    },
+                    {
+                      key: "3",
+                      icon: <SettingOutlined />,
+                      label: <Link to="/settings">Settings</Link>,
+                    },
+                    { type: "divider" },
+                    profile && {
+                      key: "4",
+                      icon: <LogoutOutlined />,
+                      label: "Logout",
+                      danger: true,
+                      onClick: () => handleLogout(), // Add your logout handler
+                    },
+                  ],
+                }}
               >
-                <Avatar
-                  size="small"
-                  icon={<UserOutlined />}
-                  style={{ backgroundColor: "#1677ff" }}
-                />
-                <Text strong>{profile.name}</Text>
-                <DownOutlined style={{ fontSize: 12, color: "#666" }} />
-              </Space>
-            </Dropdown>
+                <div className="flex items-center gap-3 cursor-pointer ">
+                  <Badge dot status="success" offset={[-2, 32]}>
+                    <Avatar
+                      size="large"
+                      icon={<UserOutlined />}
+                      style={{ backgroundColor: "#1677ff" }}
+                      src={logo} // If you have avatar URL
+                    />
+                  </Badge>
+
+                  <div className="hidden lg:block">
+                    <Text
+                      strong
+                      className="block font-semibold text-[16px]! text-blue-700!"
+                    >
+                      {profile?.name || "User"}
+                    </Text>
+                  </div>
+
+                  <DownOutlined style={{ fontSize: 10, color: "#999" }} />
+                </div>
+              </Dropdown>
+            </div>
           </div>
         </Header>
 
@@ -293,7 +403,7 @@ const MainLayout = () => {
             backgroundColor: menuTheme === "dark" ? "#141d26" : "white",
           }}
         >
-          Hospital Management System ©{new Date().getFullYear()} Created by Heng
+          E - POS ©{new Date().getFullYear()} Created by Heng
           OuSa
         </Footer>
       </Layout>

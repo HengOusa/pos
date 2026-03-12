@@ -210,18 +210,14 @@ const UserPage = () => {
       dataIndex: "date_of_birth",
     },
     {
-      title: "Role ID",
-      dataIndex: "role_id",
+      title: "Role",
+      dataIndex: "role_name",
       align: "center",
     },
     {
       title: "Created At",
       dataIndex: "created_at",
       render: (date) => new Date(date).toLocaleDateString(),
-    },
-    {
-      title: "Created By",
-      dataIndex: "created_by",
     },
     {
       title: "Status",
@@ -233,6 +229,10 @@ const UserPage = () => {
         ) : (
           <Tag color="red">Inactive</Tag>
         ),
+    },
+    {
+      title: "Created By",
+      dataIndex: "created_by",
     },
     {
       title: "Profile",

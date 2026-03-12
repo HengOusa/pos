@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from "react";
 import HomeGrid from "./components/HomeGrid";
 import { request } from "../utils/request";
+import LineChart from "../Charts/LineChart";
 
 const Dashboard = () => {
   const [home, setHome] = useState([]);
@@ -29,6 +30,7 @@ const Dashboard = () => {
   return (
     <div>
       <HomeGrid data={home} loading={loading} />
+      <LineChart />
     </div>
   );
 };

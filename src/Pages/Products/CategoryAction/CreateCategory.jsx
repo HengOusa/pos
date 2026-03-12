@@ -22,13 +22,26 @@ const CreateCategory = () => {
   const handleSubmit = async (values) => {
     setLoading(true);
     try {
-      await request("categories", "post", {
+      // Transform is_active to 0/1 before sending
+      const payload = {
         ...values,
         is_active: values.is_active ? 1 : 0,
-      });
-      message.success("Category added successfully");
-      navigate("/products/categories"); // go back to category list
+      };
+      alert(JSON.stringify(payload));
+      const res = await request("categories", "post", payload);
+
+      alert(JSON.stringify(res));
+      // Check if API returned errors
+      if (res && !res.errors) {
+        message.success("Category added successfully");
+        navigate("/products/categories"); // go back to category list
+      } else if (res.errors) {
+        // Show first error message
+        message.error(res.errors.message || "Failed to add category");
+        console.log("Validation errors:", res.errors);
+      }
     } catch (error) {
+      console.error(error);
       message.error("Failed to add category");
     } finally {
       setLoading(false);
