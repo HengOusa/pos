@@ -196,3 +196,6 @@ html {
 .ant-card-body {
   padding: 16px;
 }
+.ant-table-cell {
+  padding: 1px 1px !important; /* top/bottom 2px, left/right 8px */
+}

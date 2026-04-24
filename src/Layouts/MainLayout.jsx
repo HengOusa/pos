@@ -15,6 +15,9 @@ import {
   BellOutlined,
   MessageOutlined,
   SearchOutlined,
+  PrinterOutlined,
+  FullscreenOutlined,
+  QuestionCircleOutlined,
 } from "@ant-design/icons";
 
 import {
@@ -29,10 +32,11 @@ import {
   Space,
   theme,
   Typography,
+  message,
 } from "antd";
 import { useEffect, useState } from "react";
 import { Link, Outlet, useLocation, useNavigate } from "react-router-dom";
-import logo from "../assets/images/pos.png";
+import logo from "../assets/images/Nffs.png";
 import {
   clearProfile,
   getProfile,
@@ -40,6 +44,8 @@ import {
   setProfile,
 } from "../Stores/profile.store";
 import { useProfileStore } from "../Stores/profileStore";
+import { configStore } from "../Stores/config.store";
+import { request } from "../utils/request";
 
 const { Header, Content, Footer, Sider } = Layout;
 const { Text } = Typography;
@@ -51,6 +57,7 @@ function getItem(label, key, icon, children) {
 const MenuItems = [
   // ================= Dashboard =================
   getItem("Dashboard", "dashboard", <PieChartOutlined />),
+  getItem("POS", "pos", <ShoppingCartOutlined />),
 
   // ================= Products =================
   getItem("Products", "products", <ShopOutlined />, [
@@ -136,9 +143,11 @@ const MainLayout = () => {
   const [menuTheme, setMenuTheme] = useState("light");
   const navigate = useNavigate();
   const location = useLocation();
-  const [selectedKey, setSelectedKey] = useState("dashboard");
+  const [selectedKey, setSelectedKey] = useState("");
   const profile = useProfileStore((state) => state.profile);
   const logout = useProfileStore((state) => state.logout);
+  const count = configStore((state) => state.count);
+  const { config, setConfig } = configStore();
 
   // profile
 
@@ -147,6 +156,7 @@ const MainLayout = () => {
     if (!profile) {
       navigate("auth/login");
     }
+    getConfig();
 
     const path = location.pathname.replace("/", "");
     // exact match
@@ -154,13 +164,19 @@ const MainLayout = () => {
       setSelectedKey(path);
       return;
     }
-    // partial match (for /products/list/10)
-    const match = MENU_KEYS.find((key) => path.startsWith(key));
-    if (match) {
-      setSelectedKey(match);
-    }
-    // ==============================================
+      
   }, [location.pathname]);
+
+  const getConfig = async () => {
+    try {
+      const res = await request("config", "get");
+      setConfig(res);
+      // alert(JSON.stringify(res));
+      console.log(config);
+    } catch (error) {
+      message.error("Config Errors");
+    }
+  };
 
   const getAllMenuKeys = (items) => {
     let keys = [];
@@ -174,6 +190,7 @@ const MainLayout = () => {
         });
       }
     });
+    console.log(keys);
 
     return keys;
   };
@@ -278,7 +295,7 @@ const MainLayout = () => {
 
               {/* Optional: Add logo/brand name */}
               <div className="hidden sm:block">
-                <span className="font-semibold text-lg bg-gradient-to-r from-blue-500 to-purple-600 bg-clip-text text-transparent">
+                <span className="font-semibold text-lg bg-linear-to-r from-blue-500 to-purple-600 bg-clip-text text-transparent">
                   Dashboard
                 </span>
               </div>
@@ -297,6 +314,23 @@ const MainLayout = () => {
             <div className="flex items-center gap-4">
               {/* Right section with user menu */}
               <div className="flex items-center gap-4">
+                <Button className="p-1!" size="large" shape="circle">
+                  <strong className="font-semibold text-[15px] bg-linear-to-r from-blue-500 to-purple-600 bg-clip-text text-transparent">
+                    POS
+                  </strong>
+                </Button>
+                {/* Printer */}
+                {/* <PrinterOutlined className="text-2xl cursor-pointer text-blue-500" /> */}
+
+                {/* Fullscreen */}
+                {/* <FullscreenOutlined className="text-2xl cursor-pointer text-blue-500" /> */}
+
+                {/* Help */}
+                {/* <QuestionCircleOutlined className="text-2xl cursor-pointer text-blue-500" /> */}
+                {/* Orders / Cart */}
+                <Badge count={count}>
+                  <ShoppingCartOutlined className="text-2xl cursor-pointer text-blue-500!" />
+                </Badge>
                 {/* Notification */}
                 <Badge count={5}>
                   <BellOutlined className="text-2xl cursor-pointer text-blue-500!" />
@@ -350,12 +384,17 @@ const MainLayout = () => {
                 }}
               >
                 <div className="flex items-center gap-3 cursor-pointer ">
-                  <Badge dot status="success" offset={[-2, 32]}>
+                  <Badge dot status="success" offset={[-2, 22]}>
                     <Avatar
-                      size="large"
-                      icon={<UserOutlined />}
-                      style={{ backgroundColor: "#1677ff" }}
-                      src={logo} // If you have avatar URL
+                      size={48} // Large but can adjust
+                      icon={<UserOutlined style={{ color: "#1890ff" }} />} // icon color
+                      src={logo} // Avatar URL
+                      alt="User Avatar"
+                      style={{
+                        backgroundColor: "#f0f2f5", // subtle background if src fails
+                        border: "1px solid #1890ff", // optional border for style
+                        boxShadow: "0 2px 6px rgba(0,0,0,0.15)", // subtle shadow
+                      }}
                     />
                   </Badge>
 
@@ -403,8 +442,7 @@ const MainLayout = () => {
             backgroundColor: menuTheme === "dark" ? "#141d26" : "white",
           }}
         >
-          E - POS ©{new Date().getFullYear()} Created by Heng
-          OuSa
+          E - POS ©{new Date().getFullYear()} Created by Heng OuSa
         </Footer>
       </Layout>
     </Layout>

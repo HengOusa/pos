@@ -27,10 +27,8 @@ const CreateCategory = () => {
         ...values,
         is_active: values.is_active ? 1 : 0,
       };
-      alert(JSON.stringify(payload));
       const res = await request("categories", "post", payload);
 
-      alert(JSON.stringify(res));
       // Check if API returned errors
       if (res && !res.errors) {
         message.success("Category added successfully");

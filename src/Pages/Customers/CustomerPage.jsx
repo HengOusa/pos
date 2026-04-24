@@ -13,8 +13,6 @@ import {
   Col,
   Typography,
   Tag,
-  Switch,
-  Avatar,
 } from "antd";
 
 import {
@@ -24,7 +22,6 @@ import {
   FileExcelOutlined,
   FilePdfOutlined,
   PlusOutlined,
-  UserOutlined,
 } from "@ant-design/icons";
 
 import { request } from "../../utils/request";
@@ -35,19 +32,16 @@ import { saveAs } from "file-saver";
 import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
 import { useNavigate } from "react-router-dom";
-import { configStore } from "../../Stores/config.store";
 
 const { Title } = Typography;
 
-const UserPage = () => {
+const CustomerPage = () => {
   const [state, setState] = useState({
     total: 0,
-    users: [],
+    customers: [],
     loading: false,
     search: "",
   });
-
-  const { config } = configStore();
 
   const navigate = useNavigate();
 
@@ -56,24 +50,25 @@ const UserPage = () => {
   }, []);
 
   // ================================
-  // Fetch Users
+  // Fetch Customers
   // ================================
   const getList = async () => {
     setState((prev) => ({ ...prev, loading: true }));
-    try {
-      const res = await request("auth/users", "get");
 
-      if (res?.status == "success") {
+    try {
+      const res = await request("customers", "get");
+
+      if (res?.status === "success") {
         setState((prev) => ({
           ...prev,
           total: res.total,
-          users: res.users,
+          customers: res.customers,
         }));
       } else {
-        message.error("Failed to load users");
+        message.error("Failed to load customers");
       }
     } catch (error) {
-      message.error("Failed to load users");
+      message.error("Failed to load customers");
     } finally {
       setState((prev) => ({ ...prev, loading: false }));
     }
@@ -83,17 +78,17 @@ const UserPage = () => {
   // Export Excel
   // ================================
   const exportToExcel = () => {
-    const ws = XLSX.utils.json_to_sheet(state.users);
+    const ws = XLSX.utils.json_to_sheet(state.customers);
     const wb = XLSX.utils.book_new();
 
-    XLSX.utils.book_append_sheet(wb, ws, "Users");
+    XLSX.utils.book_append_sheet(wb, ws, "Customers");
 
     const buffer = XLSX.write(wb, {
       bookType: "xlsx",
       type: "array",
     });
 
-    saveAs(new Blob([buffer]), "users.xlsx");
+    saveAs(new Blob([buffer]), "customers.xlsx");
   };
 
   // ================================
@@ -103,26 +98,28 @@ const UserPage = () => {
     const doc = new jsPDF();
 
     doc.setFontSize(18);
-    doc.text("User List", 14, 22);
+    doc.text("Customer List", 14, 22);
 
     const columns = [
       "ID",
       "Name",
       "Email",
       "Phone",
-      "Date of Birth",
-      "Role",
-      "Status",
+      "Gender",
+      "Address",
+      "Points",
+      "Created",
     ];
 
-    const rows = state.users.map((user) => [
-      user.user_id,
-      user.name,
-      user.email,
-      user.phone_number,
-      user.date_of_birth,
-      user.role_id,
-      user.is_active === 1 ? "Active" : "Inactive",
+    const rows = state.customers.map((c) => [
+      c.customer_id,
+      c.name,
+      c.email,
+      c.phone,
+      c.gender,
+      c.address,
+      c.loyalty_points,
+      new Date(c.created_at).toLocaleDateString(),
     ]);
 
     autoTable(doc, {
@@ -132,22 +129,22 @@ const UserPage = () => {
       theme: "grid",
     });
 
-    doc.save("users.pdf");
+    doc.save("customers.pdf");
   };
 
   // ================================
-  // Delete User
+  // Delete Customer
   // ================================
   const handleDelete = async (id) => {
     try {
-      const res = await request(`users/${id}`, "delete");
+      const res = await request(`customers/${id}`, "delete");
 
       if (res?.status !== "success") {
-        message.error(res.errors?.message || "Delete failed");
+        message.error("Delete failed");
         return;
       }
 
-      message.success("User deleted successfully");
+      message.success("Customer deleted successfully");
       getList();
     } catch (error) {
       message.error("Delete failed");
@@ -155,34 +152,13 @@ const UserPage = () => {
   };
 
   // ================================
-  // Toggle Status
-  // ================================
-  const handleToggleStatus = async (id, status) => {
-    const data = {
-      is_active: status ? 1 : 0,
-    };
-
-    try {
-      const res = await request(`users/${id}/status`, "patch", data);
-
-      if (res?.status === "success") {
-        message.success("User status updated");
-        getList();
-      } else {
-        message.error("Failed to update status");
-      }
-    } catch (error) {
-      message.error("Failed to update status");
-    }
-  };
-
-  // ================================
   // Search Filter
   // ================================
-  const filteredData = state.users.filter(
+  const filteredData = state.customers.filter(
     (item) =>
       item.name.toLowerCase().includes(state.search.toLowerCase()) ||
-      item.email.toLowerCase().includes(state.search.toLowerCase()),
+      item.email.toLowerCase().includes(state.search.toLowerCase()) ||
+      item.phone.toLowerCase().includes(state.search.toLowerCase()),
   );
 
   // ================================
@@ -205,90 +181,55 @@ const UserPage = () => {
     },
     {
       title: "Phone",
-      dataIndex: "phone_number",
+      dataIndex: "phone",
     },
     {
-      title: "Date of Birth",
-      dataIndex: "date_of_birth",
-    },
-    {
-      title: "Role",
-      dataIndex: "role_id",
-      render: (value) => {
-        const role = config?.roles.find((item) => {
-          return item.role_id === value;
-        });
+      title: "Gender",
+      dataIndex: "gender",
+      align: "center",
+      render: (gender) => {
+        let color = "blue";
+        if (gender === "Female") color = "pink";
+        if (gender === "Other") color = "purple";
 
-        return role ? role.name : "-";
+        return <Tag color={color}>{gender}</Tag>;
       },
+    },
+    {
+      title: "Address",
+      dataIndex: "address",
+    },
+    {
+      title: "Loyalty Points",
+      dataIndex: "loyalty_points",
+      align: "center",
+      sorter: (a, b) => a.loyalty_points - b.loyalty_points,
+      render: (points) => <Tag color="gold">{points}</Tag>,
     },
     {
       title: "Created At",
       dataIndex: "created_at",
-      render: (date) => new Date(date).toLocaleDateString(),
-    },
-    {
-      title: "Created By",
-      dataIndex: "created_by",
-      render: (value) => {
-        const user = config?.users.find((item) => item.user_id === value);
-        return user ? user.name : "-";
-      },
-    },
-    {
-      title: "Profile",
-      dataIndex: "image",
-      align: "center",
-      render: (image, record) => (
-        <Avatar
-          size={33}
-          src={image ? `http://localhost:3000/uploads/${image}` : null}
-          icon={!image && <UserOutlined />}
-          style={{ backgroundColor: "#87d068" }}
-        >
-          {!image && record.name?.charAt(0).toUpperCase()}
-        </Avatar>
-      ),
-    },
-    {
-      title: "Status",
-      dataIndex: "is_active",
-      align: "center",
-      render: (value) => (
-        <span
-          style={{
-            color: value === 1 ? "green" : "red",
-            fontWeight: "bold",
-          }}
-        >
-          {value === 1 ? "Active" : "Inactive"}
-        </span>
-      ),
+      render: (date) => new Date(date).toLocaleString(),
     },
     {
       title: "Action",
       align: "center",
       render: (_, record) => (
         <Space>
-          <Switch
-            checked={record.is_active === 1}
-            onChange={(checked) => handleToggleStatus(record.user_id, checked)}
-          />
-
-          <Tooltip title="Edit User">
+          <Tooltip title="Edit Customer">
             <Button
               type="primary"
               shape="circle"
               icon={<EditOutlined />}
-              onClick={() => navigate(`/users/edit/${record.user_id}`)}
+              onClick={() => navigate(`/customers/edit/${record.customer_id}`)}
             />
           </Tooltip>
 
           <Popconfirm
-            title="Are you sure to Delete this User ?"
+            title="Delete this customer?"
             okText="Yes"
             cancelText="No"
-            onConfirm={() => handleDelete(record.user_id)}
+            onConfirm={() => handleDelete(record.customer_id)}
           >
             <Button danger shape="circle" icon={<DeleteOutlined />} />
           </Popconfirm>
@@ -301,7 +242,7 @@ const UserPage = () => {
     <>
       <div className="mb-3 flex justify-between items-center">
         <h2 className="font-semibold text-lg bg-linear-to-r from-blue-500 to-purple-600 bg-clip-text text-transparent underline">
-          Settings / Users
+          POS / Customers
         </h2>
       </div>
 
@@ -310,7 +251,7 @@ const UserPage = () => {
           <Space>
             <Col flex="auto" style={{ minWidth: 200 }}>
               <Input
-                placeholder="Search user..."
+                placeholder="Search customer..."
                 prefix={<SearchOutlined />}
                 allowClear
                 onChange={(e) =>
@@ -341,9 +282,9 @@ const UserPage = () => {
             <Button
               type="primary"
               icon={<PlusOutlined />}
-              onClick={() => navigate("/users/create")}
+              onClick={() => navigate("/customers/create")}
             >
-              Add User
+              Add Customer
             </Button>
           </Space>
         </Row>
@@ -355,14 +296,14 @@ const UserPage = () => {
             size="small"
             columns={columns}
             dataSource={filteredData}
-            rowKey="user_id"
+            rowKey="customer_id"
             scroll={{ x: 1000 }}
             pagination={{
               total: state.total,
               pageSize: 8,
               showSizeChanger: true,
               showQuickJumper: true,
-              showTotal: (total) => `Total ${total} users`,
+              showTotal: (total) => `Total ${total} customers`,
             }}
           />
         </Spin>
@@ -371,4 +312,4 @@ const UserPage = () => {
   );
 };
 
-export default UserPage;
+export default CustomerPage;

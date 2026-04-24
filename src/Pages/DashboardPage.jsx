@@ -1,7 +1,10 @@
 import React, { useEffect, useState } from "react";
+import { Row, Col, Button } from "antd";
 import HomeGrid from "./components/HomeGrid";
 import { request } from "../utils/request";
 import LineChart from "../Charts/LineChart";
+import Counter from "./components/Counter";
+import { configStore } from "../Stores/config.store";
 
 const Dashboard = () => {
   const [home, setHome] = useState([]);
@@ -26,11 +29,22 @@ const Dashboard = () => {
       setLoading(false);
     }
   };
+  
 
   return (
     <div>
       <HomeGrid data={home} loading={loading} />
-      <LineChart />
+
+      <Row gutter={24}>
+        <Col span={12}>
+          <LineChart />
+        </Col>
+
+        <Col span={12}>
+          <LineChart />
+        </Col>
+        <Counter />
+      </Row>
     </div>
   );
 };

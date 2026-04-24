@@ -13,7 +13,20 @@ import BrandPage from "./Pages/Products/BrandPage";
 import MainAuth from "./Layouts/MainAuth";
 import LoginPage from "./Auth/LoginPage";
 import SignUpForm from "./Auth/SignUpForm";
+import RolePermission from "./Pages/Settings/RolePermission";
+import CustomerPage from "./Pages/Customers/CustomerPage";
+import SupplierPage from "./Pages/Purchases/SupplierPage";
+import ProductVariantPage from "./Pages/Products/ProductVariantPage";
+import LoyaltyPointPage from "./Pages/Customers/LoyaltyPointPage";
+import EmployeePage from "./Pages/Employees/EmployeePage";
+import CreateProduct from "./Pages/Products/ProductAction/CreateProduct";
+import { configStore } from "./Stores/config.store";
+import EditProduct from "./Pages/Products/ProductAction/EditProduct";
 function App() {
+  const { config } = configStore();
+
+  console.log(config)
+
   return (
     <>
       <BrowserRouter>
@@ -31,9 +44,50 @@ function App() {
             <Route path="/categories/create" element={<CreateCategory />} />
             <Route path="/categories/edit/:id" element={<EditCategory />} />
             <Route path="/products/list" element={<ProductPage />} />
+            <Route
+              path="/products/create"
+              element={
+                <CreateProduct
+                  categories={(config?.categories || []).filter(
+                    (item) => item.is_active === 1,
+                  )}
+                  brands={(config?.brands || []).filter(
+                    (item) => item.is_active === 1,
+                  )}
+                  suppliers={(config?.suppliers || []).filter(
+                    (item) => item.is_active === 1,
+                  )}
+                />
+              }
+            />
+            <Route
+              path="/products/edit/:id"
+              element={
+                <EditProduct
+                  categories={(config?.categories || []).filter(
+                    (item) => item.is_active === 1,
+                  )}
+                  brands={(config?.brands || []).filter(
+                    (item) => item.is_active === 1,
+                  )}
+                  suppliers={(config?.suppliers || []).filter(
+                    (item) => item.is_active === 1,
+                  )}
+                />
+              }
+            />
             <Route path="products/brands" element={<BrandPage />} />
+            <Route path="products/variants" element={<ProductVariantPage />} />
+            {/* Employees */}
+            <Route path="employees/list" element={<EmployeePage />} />
+            {/* Purchase */}
+            <Route path="purchases/suppliers" element={<SupplierPage />} />
+            {/* Customers */}
+            <Route path="customers/list" element={<CustomerPage />} />
+            <Route path="customers/loyalty" element={<LoyaltyPointPage />} />
             {/* Settings */}
             <Route path="settings/users" element={<UserPage />} />
+            <Route path="settings/roles" element={<RolePermission />} />
           </Route>
         </Routes>
       </BrowserRouter>

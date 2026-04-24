@@ -9,6 +9,7 @@ import {
   Divider,
   Alert,
   message,
+  Spin,
 } from "antd";
 import { UserOutlined, LockOutlined, MailOutlined } from "@ant-design/icons";
 import { request } from "../utils/request";
@@ -57,6 +58,8 @@ const LoginPage = () => {
       } else {
         message.error("Something went wrong.");
       }
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -65,13 +68,13 @@ const LoginPage = () => {
   };
 
   return (
-    <>
+    <Spin spinning={loanding}>
       <div className="min-h-screen flex justify-center items-center p-5 relative overflow-hidden">
         {/* Background Image with Blur - Separate div */}
         <div
           className="absolute inset-0 bg-cover bg-center bg-no-repeat filter blur-[7px] scale-110"
           style={{
-            backgroundImage: `url('https://www.tsiservice.com/wp-content/uploads/2022/05/TSI-POS-Systems-header.jpeg')`,
+            backgroundImage: `url('https://blogger.googleusercontent.com/img/b/R29vZ2xl/AVvXsEjo8mYvh4Aw3OAHw106Xm65KEoG-W6d2RAV-2jSSX4xpvWCBwCErMJJ6I_Xkv-CY0eABSLZ7MqUqxCA-OKGXDyAbKMWL855-nOgI1fo2dWKm9qqnoTcnu4aYw-eDILaP4LwBbwuP68haqU/s1600/RUPP-Royal-University-of-Phnom-Penh1.jpg')`,
           }}
         />
 
@@ -139,13 +142,7 @@ const LoginPage = () => {
             </Form.Item>
 
             <Form.Item>
-              <Button
-                type="primary"
-                htmlType="submit"
-                className="w-full h-12 rounded-lg text-base font-medium bg-gradient-to-r from-purple-600 to-blue-500 border-none hover:from-purple-700 hover:to-blue-600 transition-all duration-300 hover:shadow-lg hover:shadow-purple-300 hover:-translate-y-0.5 active:translate-y-0"
-                block
-                loading={loanding}
-              >
+              <Button type="primary" htmlType="submit" block>
                 Sign In
               </Button>
             </Form.Item>
@@ -164,7 +161,7 @@ const LoginPage = () => {
           </Form>
         </Card>
       </div>
-    </>
+    </Spin>
   );
 };
 

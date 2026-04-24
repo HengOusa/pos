@@ -12,9 +12,6 @@ import {
   Row,
   Col,
   Typography,
-  Tag,
-  Switch,
-  Avatar,
 } from "antd";
 
 import {
@@ -24,7 +21,6 @@ import {
   FileExcelOutlined,
   FilePdfOutlined,
   PlusOutlined,
-  UserOutlined,
 } from "@ant-design/icons";
 
 import { request } from "../../utils/request";
@@ -35,19 +31,16 @@ import { saveAs } from "file-saver";
 import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
 import { useNavigate } from "react-router-dom";
-import { configStore } from "../../Stores/config.store";
 
 const { Title } = Typography;
 
-const UserPage = () => {
+const SupplierPage = () => {
   const [state, setState] = useState({
     total: 0,
-    users: [],
+    suppliers: [],
     loading: false,
     search: "",
   });
-
-  const { config } = configStore();
 
   const navigate = useNavigate();
 
@@ -56,24 +49,24 @@ const UserPage = () => {
   }, []);
 
   // ================================
-  // Fetch Users
+  // Fetch Suppliers
   // ================================
   const getList = async () => {
     setState((prev) => ({ ...prev, loading: true }));
     try {
-      const res = await request("auth/users", "get");
+      const res = await request("suppliers", "get"); // <-- your API endpoint
 
-      if (res?.status == "success") {
+      if (res?.status === "success") {
         setState((prev) => ({
           ...prev,
           total: res.total,
-          users: res.users,
+          suppliers: res.suppliers,
         }));
       } else {
-        message.error("Failed to load users");
+        message.error("Failed to load suppliers");
       }
     } catch (error) {
-      message.error("Failed to load users");
+      message.error("Failed to load suppliers");
     } finally {
       setState((prev) => ({ ...prev, loading: false }));
     }
@@ -83,17 +76,12 @@ const UserPage = () => {
   // Export Excel
   // ================================
   const exportToExcel = () => {
-    const ws = XLSX.utils.json_to_sheet(state.users);
+    const ws = XLSX.utils.json_to_sheet(state.suppliers);
     const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, "Suppliers");
 
-    XLSX.utils.book_append_sheet(wb, ws, "Users");
-
-    const buffer = XLSX.write(wb, {
-      bookType: "xlsx",
-      type: "array",
-    });
-
-    saveAs(new Blob([buffer]), "users.xlsx");
+    const buffer = XLSX.write(wb, { bookType: "xlsx", type: "array" });
+    saveAs(new Blob([buffer]), "suppliers.xlsx");
   };
 
   // ================================
@@ -101,53 +89,36 @@ const UserPage = () => {
   // ================================
   const exportToPDF = () => {
     const doc = new jsPDF();
-
     doc.setFontSize(18);
-    doc.text("User List", 14, 22);
+    doc.text("Supplier List", 14, 22);
 
-    const columns = [
-      "ID",
-      "Name",
-      "Email",
-      "Phone",
-      "Date of Birth",
-      "Role",
-      "Status",
-    ];
+    const columns = ["ID", "Name", "Email", "Phone", "Address", "Created At"];
 
-    const rows = state.users.map((user) => [
-      user.user_id,
-      user.name,
-      user.email,
-      user.phone_number,
-      user.date_of_birth,
-      user.role_id,
-      user.is_active === 1 ? "Active" : "Inactive",
+    const rows = state.suppliers.map((s) => [
+      s.supplier_id,
+      s.name,
+      s.email,
+      s.phone,
+      s.address,
+      new Date(s.created_at).toLocaleDateString(),
     ]);
 
-    autoTable(doc, {
-      head: [columns],
-      body: rows,
-      startY: 30,
-      theme: "grid",
-    });
+    autoTable(doc, { head: [columns], body: rows, startY: 30, theme: "grid" });
 
-    doc.save("users.pdf");
+    doc.save("suppliers.pdf");
   };
 
   // ================================
-  // Delete User
+  // Delete Supplier
   // ================================
   const handleDelete = async (id) => {
     try {
-      const res = await request(`users/${id}`, "delete");
-
+      const res = await request(`suppliers/${id}`, "delete");
       if (res?.status !== "success") {
         message.error(res.errors?.message || "Delete failed");
         return;
       }
-
-      message.success("User deleted successfully");
+      message.success("Supplier deleted successfully");
       getList();
     } catch (error) {
       message.error("Delete failed");
@@ -155,31 +126,9 @@ const UserPage = () => {
   };
 
   // ================================
-  // Toggle Status
-  // ================================
-  const handleToggleStatus = async (id, status) => {
-    const data = {
-      is_active: status ? 1 : 0,
-    };
-
-    try {
-      const res = await request(`users/${id}/status`, "patch", data);
-
-      if (res?.status === "success") {
-        message.success("User status updated");
-        getList();
-      } else {
-        message.error("Failed to update status");
-      }
-    } catch (error) {
-      message.error("Failed to update status");
-    }
-  };
-
-  // ================================
   // Search Filter
   // ================================
-  const filteredData = state.users.filter(
+  const filteredData = state.suppliers.filter(
     (item) =>
       item.name.toLowerCase().includes(state.search.toLowerCase()) ||
       item.email.toLowerCase().includes(state.search.toLowerCase()),
@@ -205,50 +154,17 @@ const UserPage = () => {
     },
     {
       title: "Phone",
-      dataIndex: "phone_number",
+      dataIndex: "phone",
     },
     {
-      title: "Date of Birth",
-      dataIndex: "date_of_birth",
-    },
-    {
-      title: "Role",
-      dataIndex: "role_id",
-      render: (value) => {
-        const role = config?.roles.find((item) => {
-          return item.role_id === value;
-        });
-
-        return role ? role.name : "-";
-      },
+      title: "Address",
+      dataIndex: "address",
     },
     {
       title: "Created At",
       dataIndex: "created_at",
-      render: (date) => new Date(date).toLocaleDateString(),
-    },
-    {
-      title: "Created By",
-      dataIndex: "created_by",
-      render: (value) => {
-        const user = config?.users.find((item) => item.user_id === value);
-        return user ? user.name : "-";
-      },
-    },
-    {
-      title: "Profile",
-      dataIndex: "image",
       align: "center",
-      render: (image, record) => (
-        <Avatar
-          size={33}
-          src={image ? `http://localhost:3000/uploads/${image}` : null}
-          icon={!image && <UserOutlined />}
-          style={{ backgroundColor: "#87d068" }}
-        >
-          {!image && record.name?.charAt(0).toUpperCase()}
-        </Avatar>
-      ),
+      render: (date) => new Date(date).toLocaleDateString(),
     },
     {
       title: "Status",
@@ -270,25 +186,20 @@ const UserPage = () => {
       align: "center",
       render: (_, record) => (
         <Space>
-          <Switch
-            checked={record.is_active === 1}
-            onChange={(checked) => handleToggleStatus(record.user_id, checked)}
-          />
-
-          <Tooltip title="Edit User">
+          <Tooltip title="Edit Supplier">
             <Button
               type="primary"
               shape="circle"
               icon={<EditOutlined />}
-              onClick={() => navigate(`/users/edit/${record.user_id}`)}
+              onClick={() => navigate(`/suppliers/edit/${record.supplier_id}`)}
             />
           </Tooltip>
 
           <Popconfirm
-            title="Are you sure to Delete this User ?"
+            title="Are you sure to delete this supplier?"
             okText="Yes"
             cancelText="No"
-            onConfirm={() => handleDelete(record.user_id)}
+            onConfirm={() => handleDelete(record.supplier_id)}
           >
             <Button danger shape="circle" icon={<DeleteOutlined />} />
           </Popconfirm>
@@ -301,7 +212,7 @@ const UserPage = () => {
     <>
       <div className="mb-3 flex justify-between items-center">
         <h2 className="font-semibold text-lg bg-linear-to-r from-blue-500 to-purple-600 bg-clip-text text-transparent underline">
-          Settings / Users
+          Suppliers
         </h2>
       </div>
 
@@ -310,14 +221,11 @@ const UserPage = () => {
           <Space>
             <Col flex="auto" style={{ minWidth: 200 }}>
               <Input
-                placeholder="Search user..."
+                placeholder="Search supplier..."
                 prefix={<SearchOutlined />}
                 allowClear
                 onChange={(e) =>
-                  setState((prev) => ({
-                    ...prev,
-                    search: e.target.value,
-                  }))
+                  setState((prev) => ({ ...prev, search: e.target.value }))
                 }
               />
             </Col>
@@ -341,9 +249,9 @@ const UserPage = () => {
             <Button
               type="primary"
               icon={<PlusOutlined />}
-              onClick={() => navigate("/users/create")}
+              onClick={() => navigate("/suppliers/create")}
             >
-              Add User
+              Add Supplier
             </Button>
           </Space>
         </Row>
@@ -355,14 +263,14 @@ const UserPage = () => {
             size="small"
             columns={columns}
             dataSource={filteredData}
-            rowKey="user_id"
+            rowKey="supplier_id"
             scroll={{ x: 1000 }}
             pagination={{
               total: state.total,
-              pageSize: 8,
+              pageSizeOptions: ["5", "8", "10", "20", "50", "100"],
               showSizeChanger: true,
               showQuickJumper: true,
-              showTotal: (total) => `Total ${total} users`,
+              showTotal: (total) => `Total ${total} suppliers`,
             }}
           />
         </Spin>
@@ -371,4 +279,4 @@ const UserPage = () => {
   );
 };
 
-export default UserPage;
+export default SupplierPage;

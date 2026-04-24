@@ -28,10 +28,8 @@ import {
 } from "@ant-design/icons";
 
 import { request } from "../../utils/request";
-
 import * as XLSX from "xlsx";
 import { saveAs } from "file-saver";
-
 import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
 import { useNavigate } from "react-router-dom";
@@ -39,16 +37,15 @@ import { configStore } from "../../Stores/config.store";
 
 const { Title } = Typography;
 
-const UserPage = () => {
+const EmployeePage = () => {
   const [state, setState] = useState({
     total: 0,
-    users: [],
+    employees: [],
     loading: false,
     search: "",
   });
 
   const { config } = configStore();
-
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -56,98 +53,89 @@ const UserPage = () => {
   }, []);
 
   // ================================
-  // Fetch Users
+  // Fetch Employees
   // ================================
   const getList = async () => {
     setState((prev) => ({ ...prev, loading: true }));
     try {
-      const res = await request("auth/users", "get");
+      const res = await request("employees", "get"); // adjust endpoint if needed
 
-      if (res?.status == "success") {
+      if (res?.status === "success") {
         setState((prev) => ({
           ...prev,
           total: res.total,
-          users: res.users,
+          employees: res.employees,
         }));
       } else {
-        message.error("Failed to load users");
+        message.error("Failed to load employees");
       }
     } catch (error) {
-      message.error("Failed to load users");
+      message.error("Failed to load employees");
     } finally {
       setState((prev) => ({ ...prev, loading: false }));
     }
   };
 
   // ================================
-  // Export Excel
+  // Export to Excel
   // ================================
   const exportToExcel = () => {
-    const ws = XLSX.utils.json_to_sheet(state.users);
+    const ws = XLSX.utils.json_to_sheet(state.employees);
     const wb = XLSX.utils.book_new();
-
-    XLSX.utils.book_append_sheet(wb, ws, "Users");
-
-    const buffer = XLSX.write(wb, {
-      bookType: "xlsx",
-      type: "array",
-    });
-
-    saveAs(new Blob([buffer]), "users.xlsx");
+    XLSX.utils.book_append_sheet(wb, ws, "Employees");
+    const buffer = XLSX.write(wb, { bookType: "xlsx", type: "array" });
+    saveAs(new Blob([buffer]), "employees.xlsx");
   };
 
   // ================================
-  // Export PDF
+  // Export to PDF
   // ================================
   const exportToPDF = () => {
     const doc = new jsPDF();
-
     doc.setFontSize(18);
-    doc.text("User List", 14, 22);
+    doc.text("Employee List", 14, 22);
 
     const columns = [
       "ID",
       "Name",
       "Email",
       "Phone",
-      "Date of Birth",
+      "Hire Date",
       "Role",
+      "Salary",
       "Status",
+      "Created By",
     ];
 
-    const rows = state.users.map((user) => [
-      user.user_id,
-      user.name,
-      user.email,
-      user.phone_number,
-      user.date_of_birth,
-      user.role_id,
-      user.is_active === 1 ? "Active" : "Inactive",
+    const rows = state.employees.map((emp) => [
+      emp.employee_id,
+      emp.name,
+      emp.email,
+      emp.phone,
+      new Date(emp.hire_date).toLocaleDateString(),
+      emp.role_id,
+      `$${parseFloat(emp.salary).toFixed(2)}`,
+      emp.status === "active" ? "Active" : "Inactive",
+      emp.created_by,
     ]);
 
-    autoTable(doc, {
-      head: [columns],
-      body: rows,
-      startY: 30,
-      theme: "grid",
-    });
-
-    doc.save("users.pdf");
+    autoTable(doc, { head: [columns], body: rows, startY: 30, theme: "grid" });
+    doc.save("employees.pdf");
   };
 
   // ================================
-  // Delete User
+  // Delete Employee
   // ================================
   const handleDelete = async (id) => {
     try {
-      const res = await request(`users/${id}`, "delete");
+      const res = await request(`employees/${id}`, "delete");
 
       if (res?.status !== "success") {
         message.error(res.errors?.message || "Delete failed");
         return;
       }
 
-      message.success("User deleted successfully");
+      message.success("Employee deleted successfully");
       getList();
     } catch (error) {
       message.error("Delete failed");
@@ -158,28 +146,35 @@ const UserPage = () => {
   // Toggle Status
   // ================================
   const handleToggleStatus = async (id, status) => {
-    const data = {
-      is_active: status ? 1 : 0,
+    const numericStatus = status ? 1 : 0;
+    var changeStatus = {
+      is_active: numericStatus,
     };
-
     try {
-      const res = await request(`users/${id}/status`, "patch", data);
+      // Send PATCH request to toggle status
+      const res = await request(
+        `employees/${id}/status`,
+        "patch",
+        changeStatus,
+      );
 
-      if (res?.status === "success") {
-        message.success("User status updated");
-        getList();
+      // Check response
+      if (res.status === "success") {
+        message.success("Employee status updated!");
+        getList(); // Refresh table
       } else {
         message.error("Failed to update status");
       }
     } catch (error) {
       message.error("Failed to update status");
+      console.error(error);
     }
   };
 
   // ================================
   // Search Filter
   // ================================
-  const filteredData = state.users.filter(
+  const filteredData = state.employees.filter(
     (item) =>
       item.name.toLowerCase().includes(state.search.toLowerCase()) ||
       item.email.toLowerCase().includes(state.search.toLowerCase()),
@@ -199,33 +194,25 @@ const UserPage = () => {
       dataIndex: "name",
       sorter: (a, b) => a.name.localeCompare(b.name),
     },
+    { title: "Email", dataIndex: "email" },
+    { title: "Phone", dataIndex: "phone" },
     {
-      title: "Email",
-      dataIndex: "email",
-    },
-    {
-      title: "Phone",
-      dataIndex: "phone_number",
-    },
-    {
-      title: "Date of Birth",
-      dataIndex: "date_of_birth",
+      title: "Hire Date",
+      dataIndex: "hire_date",
+      render: (date) => new Date(date).toLocaleDateString(),
     },
     {
       title: "Role",
       dataIndex: "role_id",
       render: (value) => {
-        const role = config?.roles.find((item) => {
-          return item.role_id === value;
-        });
-
+        const role = config?.roles.find((item) => item.role_id === value);
         return role ? role.name : "-";
       },
     },
     {
-      title: "Created At",
-      dataIndex: "created_at",
-      render: (date) => new Date(date).toLocaleDateString(),
+      title: "Salary",
+      dataIndex: "salary",
+      render: (value) => `$${parseFloat(value).toFixed(2)}`,
     },
     {
       title: "Created By",
@@ -272,23 +259,25 @@ const UserPage = () => {
         <Space>
           <Switch
             checked={record.is_active === 1}
-            onChange={(checked) => handleToggleStatus(record.user_id, checked)}
+            onChange={(checked) =>
+              handleToggleStatus(record.employee_id, checked)
+            }
           />
 
-          <Tooltip title="Edit User">
+          <Tooltip title="Edit Employee">
             <Button
               type="primary"
               shape="circle"
               icon={<EditOutlined />}
-              onClick={() => navigate(`/users/edit/${record.user_id}`)}
+              onClick={() => navigate(`/employees/edit/${record.employee_id}`)}
             />
           </Tooltip>
 
           <Popconfirm
-            title="Are you sure to Delete this User ?"
+            title="Are you sure to Delete this Employee?"
             okText="Yes"
             cancelText="No"
-            onConfirm={() => handleDelete(record.user_id)}
+            onConfirm={() => handleDelete(record.employee_id)}
           >
             <Button danger shape="circle" icon={<DeleteOutlined />} />
           </Popconfirm>
@@ -301,7 +290,7 @@ const UserPage = () => {
     <>
       <div className="mb-3 flex justify-between items-center">
         <h2 className="font-semibold text-lg bg-linear-to-r from-blue-500 to-purple-600 bg-clip-text text-transparent underline">
-          Settings / Users
+          Settings / Employees
         </h2>
       </div>
 
@@ -310,14 +299,11 @@ const UserPage = () => {
           <Space>
             <Col flex="auto" style={{ minWidth: 200 }}>
               <Input
-                placeholder="Search user..."
+                placeholder="Search employee..."
                 prefix={<SearchOutlined />}
                 allowClear
                 onChange={(e) =>
-                  setState((prev) => ({
-                    ...prev,
-                    search: e.target.value,
-                  }))
+                  setState((prev) => ({ ...prev, search: e.target.value }))
                 }
               />
             </Col>
@@ -341,9 +327,9 @@ const UserPage = () => {
             <Button
               type="primary"
               icon={<PlusOutlined />}
-              onClick={() => navigate("/users/create")}
+              onClick={() => navigate("/employees/create")}
             >
-              Add User
+              Add Employee
             </Button>
           </Space>
         </Row>
@@ -355,14 +341,14 @@ const UserPage = () => {
             size="small"
             columns={columns}
             dataSource={filteredData}
-            rowKey="user_id"
-            scroll={{ x: 1000 }}
+            rowKey="employee_id"
+            scroll={{ x: 1200 }}
             pagination={{
               total: state.total,
               pageSize: 8,
               showSizeChanger: true,
               showQuickJumper: true,
-              showTotal: (total) => `Total ${total} users`,
+              showTotal: (total) => `Total ${total} employees`,
             }}
           />
         </Spin>
@@ -371,4 +357,4 @@ const UserPage = () => {
   );
 };
 
-export default UserPage;
+export default EmployeePage;

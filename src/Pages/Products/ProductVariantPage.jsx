@@ -11,9 +11,7 @@ import {
   Tooltip,
   Row,
   Col,
-  Typography,
   Tag,
-  Switch,
 } from "antd";
 
 import {
@@ -32,46 +30,38 @@ import { saveAs } from "file-saver";
 
 import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
-import { useNavigate } from "react-router-dom";
-import MainPage from "../../Layouts/MainPage";
 import { configStore } from "../../Stores/config.store";
 
-const { Title } = Typography;
-
-const CategoryPage = () => {
+const ProductVariantPage = () => {
   const [state, setState] = useState({
     total: 0,
-    categories: [],
+    variants: [],
     loading: false,
     search: "",
   });
-  const navigate = useNavigate();
   const { config } = configStore();
-
   useEffect(() => {
     getList();
   }, []);
 
   // ================================
-  // Fetch Categories
+  // Fetch Variants
   // ================================
   const getList = async () => {
     setState((prev) => ({ ...prev, loading: true }));
 
     try {
-      const res = await request("categories", "get");
+      const res = await request("product-variants", "get");
 
-      if (res?.status == "success") {
+      if (res.status === "success") {
         setState((prev) => ({
           ...prev,
           total: res.total,
-          categories: res.categories,
+          variants: res.variants,
         }));
-      } else {
-        message.warning(res.errors.message);
       }
     } catch (error) {
-      message.error("Failed to load categories");
+      message.error("Failed to load variants");
     } finally {
       setState((prev) => ({ ...prev, loading: false }));
     }
@@ -81,17 +71,17 @@ const CategoryPage = () => {
   // Excel Export
   // ================================
   const exportToExcel = () => {
-    const ws = XLSX.utils.json_to_sheet(state.categories);
+    const ws = XLSX.utils.json_to_sheet(state.variants);
     const wb = XLSX.utils.book_new();
 
-    XLSX.utils.book_append_sheet(wb, ws, "Categories");
+    XLSX.utils.book_append_sheet(wb, ws, "Variants");
 
     const buffer = XLSX.write(wb, {
       bookType: "xlsx",
       type: "array",
     });
 
-    saveAs(new Blob([buffer]), "categories.xlsx");
+    saveAs(new Blob([buffer]), "variants.xlsx");
   };
 
   // ================================
@@ -101,15 +91,24 @@ const CategoryPage = () => {
     const doc = new jsPDF();
 
     doc.setFontSize(18);
-    doc.text("Category List", 14, 22);
+    doc.text("Product Variants", 14, 22);
 
-    const columns = ["ID", "Name", "Description", "Status"];
+    const columns = [
+      "ID",
+      "Product ID",
+      "Variant Name",
+      "Additional Price",
+      "Stock",
+      "Created At",
+    ];
 
-    const rows = state.categories.map((cat) => [
-      cat.category_id,
-      cat.name,
-      cat.description,
-      cat.is_active === 1 ? "Active" : "Inactive",
+    const rows = state.variants.map((v) => [
+      v.variant_id,
+      v.product_id,
+      v.name,
+      `$${v.additional_price}`,
+      v.stock,
+      new Date(v.created_at).toLocaleString(),
     ]);
 
     autoTable(doc, {
@@ -119,67 +118,28 @@ const CategoryPage = () => {
       theme: "grid",
     });
 
-    doc.save("categories.pdf");
+    doc.save("variants.pdf");
   };
 
   // ================================
   // Edit
   // ================================
   const handleEdit = (record) => {
-    navigate(`/categories/edit/${record.category_id}`);
+    console.log("Edit:", record);
   };
 
   // ================================
   // Delete
   // ================================
-  const handleDelete = async (id) => {
-    try {
-      // Call your API
-      const res = await request(`categories/${id}`, "delete");
-      // Check if API returned an error structure
-      if (res?.status !== "success") {
-        message.error(res.errors?.message || "Failed to delete category.");
-        return;
-      }
-      getList();
-      message.success("Category deleted successfully!");
-    } catch (error) {
-      console.error("Delete Error:", error);
-      message.error("Failed to delete category. Please try again.");
-    }
+  const handleDelete = (id) => {
+    console.log("Delete:", id);
   };
-  const handleToggleStatus = async (id, status) => {
-    const numericStatus = status ? 1 : 0;
-    var changeStatus = {
-      is_active: numericStatus,
-    };
-    try {
-      // Send PATCH request to toggle status
-      const res = await request(
-        `categories/${id}/status`,
-        "patch",
-        changeStatus,
-      );
 
-      // Check response
-      if (res.status === "success") {
-        message.success("Category status updated!");
-        getList(); // Refresh table
-      } else {
-        message.error("Failed to update status");
-      }
-    } catch (error) {
-      message.error("Failed to update status");
-      console.error(error);
-    }
-  };
   // ================================
   // Search Filter
   // ================================
-  const filteredData = state.categories.filter(
-    (item) =>
-      item.name.toLowerCase().includes(state.search.toLowerCase()) ||
-      item.description.toLowerCase().includes(state.search.toLowerCase()),
+  const filteredData = state.variants.filter((item) =>
+    item.name.toLowerCase().includes(state.search.toLowerCase()),
   );
 
   // ================================
@@ -192,50 +152,55 @@ const CategoryPage = () => {
       render: (text, record, index) => index + 1,
     },
     {
-      title: "Category Name",
+      title: "Product",
+      dataIndex: "product_id",
+      render: (value) => {
+        const product = config?.products.find(
+          (item) => item.product_id === value,
+        );
+        return product ? product.name : "-";
+      },
+    },
+    {
+      title: "Variant Name",
       dataIndex: "name",
       sorter: (a, b) => a.name.localeCompare(b.name),
       render: (value) => <strong className="font-semibold">{value}</strong>,
     },
     {
-      title: "Description",
-      dataIndex: "description",
-    },
-    {
-      title: "Created_By",
-      dataIndex: "created_by",
-      render: (value) => {
-        const user = config?.users.find((item) => item.user_id === value);
-        return user ? user.name : "-";
-      },
-    },
-    {
-      title: "Status",
-      dataIndex: "is_active",
+      title: "Additional Price",
+      dataIndex: "additional_price",
       align: "center",
-      render: (value) => (
-        <span
-          style={{
-            color: value === 1 ? "green" : "red",
-            fontWeight: "bold",
-          }}
-        >
-          {value === 1 ? "Active" : "Inactive"}
-        </span>
-      ),
+      render: (value) => `$${value}`,
+    },
+    {
+      title: "Stock",
+      dataIndex: "stock",
+      align: "center",
+      sorter: (a, b) => a.stock - b.stock,
+      render: (stock) =>
+        stock < 10 ? (
+          <Tag color="red">{stock}</Tag>
+        ) : (
+          <Tag color="green">{stock}</Tag>
+        ),
+    },
+    {
+      title: "Created At",
+      dataIndex: "created_at",
+      render: (date) => new Date(date).toLocaleString(),
+    },
+    {
+      title: "Updated At",
+      dataIndex: "updated_at",
+      render: (date) => new Date(date).toLocaleString(),
     },
     {
       title: "Action",
       align: "center",
       render: (_, record) => (
         <Space>
-          <Switch
-            checked={record.is_active}
-            onChange={(checked) =>
-              handleToggleStatus(record.category_id, checked)
-            }
-          />
-          <Tooltip title="Edit Category">
+          <Tooltip title="Edit Variant">
             <Button
               type="primary"
               shape="circle"
@@ -245,13 +210,15 @@ const CategoryPage = () => {
           </Tooltip>
 
           <Popconfirm
-            title="Delete Category"
-            description="Are you sure you want to delete this category?"
+            title="Delete Variant"
+            description="Are you sure you want to delete this variant?"
             okText="Yes"
             cancelText="No"
-            onConfirm={() => handleDelete(record.category_id)}
+            onConfirm={() => handleDelete(record.variant_id)}
           >
-            <Button danger shape="circle" icon={<DeleteOutlined />} />
+            <Tooltip title="Delete Variant">
+              <Button danger shape="circle" icon={<DeleteOutlined />} />
+            </Tooltip>
           </Popconfirm>
         </Space>
       ),
@@ -262,7 +229,7 @@ const CategoryPage = () => {
     <>
       <div className="mb-3 flex justify-between items-center">
         <h2 className="font-semibold text-lg bg-linear-to-r from-blue-500 to-purple-600 bg-clip-text text-transparent underline">
-          Categoris
+          Product Variants
         </h2>
       </div>
 
@@ -271,7 +238,7 @@ const CategoryPage = () => {
           <Space>
             <Col flex="auto" style={{ minWidth: 200 }}>
               <Input
-                placeholder="Search category..."
+                placeholder="Search variant..."
                 prefix={<SearchOutlined />}
                 allowClear
                 onChange={(e) =>
@@ -282,6 +249,7 @@ const CategoryPage = () => {
                 }
               />
             </Col>
+
             <Tooltip title="Export Excel">
               <Button
                 type="default"
@@ -302,19 +270,12 @@ const CategoryPage = () => {
               </Button>
             </Tooltip>
 
-            <Button
-              type="primary"
-              icon={<PlusOutlined />}
-              onClick={() => {
-                navigate("/categories/create");
-              }}
-            >
-              Add Category
+            <Button type="primary" icon={<PlusOutlined />}>
+              Add Variant
             </Button>
           </Space>
         </Row>
 
-        {/* Table */}
         <Spin spinning={state.loading}>
           <Table
             className="custom-table"
@@ -322,21 +283,20 @@ const CategoryPage = () => {
             bordered
             columns={columns}
             dataSource={filteredData}
-            rowKey="category_id"
+            rowKey="variant_id"
             scroll={{ x: 1000 }}
             pagination={{
               total: state.total,
-              pageSize: 8,
+              pageSizeOptions: ["5", "8", "10", "20", "50", "100"],
               showSizeChanger: true,
               showQuickJumper: true,
-              showTotal: (total) => `Total ${total} categories`,
+              showTotal: (total) => `Total ${total} variants`,
             }}
           />
         </Spin>
       </Card>
-      {/* </MainPage> */}
     </>
   );
 };
 
-export default CategoryPage;
+export default ProductVariantPage;

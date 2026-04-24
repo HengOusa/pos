@@ -160,10 +160,9 @@ const BrandPage = () => {
   // ================================
   const columns = [
     {
-      title: "ID",
-      dataIndex: "brand_id",
+      title: "No.",
       align: "center",
-      sorter: (a, b) => a.brand_id - b.brand_id,
+      render: (text, record, index) => index + 1,
     },
     {
       title: "Brand Name",
@@ -182,12 +181,16 @@ const BrandPage = () => {
       title: "Status",
       dataIndex: "is_active",
       align: "center",
-      render: (value) =>
-        value === 1 ? (
-          <Tag color="green">Active</Tag>
-        ) : (
-          <Tag color="red">Inactive</Tag>
-        ),
+      render: (value) => (
+        <span
+          style={{
+            color: value === 1 ? "green" : "red",
+            fontWeight: "bold",
+          }}
+        >
+          {value === 1 ? "Active" : "Inactive"}
+        </span>
+      ),
     },
     {
       title: "Action",
@@ -281,7 +284,7 @@ const BrandPage = () => {
             scroll={{ x: 1000 }}
             pagination={{
               total: state.total,
-              pageSize: 7,
+              pageSizeOptions: ["5", "8", "10", "20", "50", "100"],
               showSizeChanger: true,
               showQuickJumper: true,
               showTotal: (total) => `Total ${total} brands`,
