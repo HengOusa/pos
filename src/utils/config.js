@@ -1,4 +1,4 @@
 export default {
-  base_url: "http://localhost:3000/api/",
-  image_path: "http://localhost:3000/products/",
+  base_url: "https://pos-api-ashy.vercel.app/api/",
+  image_path: "https://pos-api-ashy.vercel.app/products/",
 };
